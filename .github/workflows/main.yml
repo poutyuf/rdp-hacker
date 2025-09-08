@@ -1,0 +1,52 @@
+name: AvicaRDP
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'  # 6 saatte bir otomatik yeniden başlatma
+
+jobs:
+  build:
+    name: RDP Kurulumu
+    runs-on: windows-latest
+    timeout-minutes: 350
+
+    steps:
+      - name: Kurulum
+        run: |
+          Write-Host "🚀 RDP kurulumu başlıyor..." -ForegroundColor Green
+          
+          # Dosyaları indir
+          Invoke-WebRequest -Uri "https://gitlab.com/userup908/my-rdp/-/raw/main/setup.py" -OutFile "setup.py"
+          Invoke-WebRequest -Uri "https://download.avica.com/AvicaLite_v8.0.8.9.exe" -OutFile "Avica_setup.exe"
+          Invoke-WebRequest -Uri "https://gitlab.com/userup908/my-rdp/-/raw/main/show.bat" -OutFile "show.bat"
+          Invoke-WebRequest -Uri "https://gitlab.com/userup908/my-rdp/-/raw/main/loop.bat" -OutFile "loop.bat"
+          
+          # Python paketlerini kur
+          python.exe -m pip install requests pyautogui telegraph --quiet
+          
+          # RDP'yi etkinleştir
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          
+          # Kullanıcı adı ve şifreyi ayarla
+          net user poutyuf "!poutyuf!" /add
+          net localgroup administrators poutyuf /add
+          
+          # Avica'yı başlat
+          Write-Host "⚡ Avica başlatılıyor..." -ForegroundColor Yellow
+          Start-Process "Avica_setup.exe" -Wait
+          
+          # Kurulum scriptini çalıştır
+          python setup.py
+          
+          Write-Host "✅ Kurulum tamamlandı!" -ForegroundColor Green
+          
+      - name: Bağlantıyı Başlat
+        run: |
+          Write-Host "🔄 Bağlantı bilgileri hazırlanıyor..." -ForegroundColor Cyan
+          cmd /c show.bat
+        
+      - name: Oturumu Aktif Tut
+        run: |
+          Write-Host "🌐 RDP oturumu aktif, bağlantı bekleniyor..." -ForegroundColor Yellow
+          cmd /c loop.bat
