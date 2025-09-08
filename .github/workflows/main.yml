@@ -2,51 +2,68 @@ name: AvicaRDP
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'  # 6 saatte bir otomatik yeniden başlatma
+    - cron: '0 */6 * * *'  # Her 6 saatte bir otomatik yeniden başlatma
 
 jobs:
   build:
-    name: RDP Kurulumu
+    name: 🚀 RDP Kurulum ve Yapılandırma
     runs-on: windows-latest
-    timeout-minutes: 350
+    timeout-minutes: 350  # Maksimum çalışma süresi
 
     steps:
-      - name: Kurulum
+      - name: 📥 Gerekli Dosyaları İndir
         run: |
-          Write-Host "🚀 RDP kurulumu başlıyor..." -ForegroundColor Green
-          
-          # Dosyaları indir
+          Write-Host "Dosyalar indiriliyor..." -ForegroundColor Cyan
           Invoke-WebRequest -Uri "https://gitlab.com/userup908/my-rdp/-/raw/main/setup.py" -OutFile "setup.py"
           Invoke-WebRequest -Uri "https://download.avica.com/AvicaLite_v8.0.8.9.exe" -OutFile "Avica_setup.exe"
           Invoke-WebRequest -Uri "https://gitlab.com/userup908/my-rdp/-/raw/main/show.bat" -OutFile "show.bat"
           Invoke-WebRequest -Uri "https://gitlab.com/userup908/my-rdp/-/raw/main/loop.bat" -OutFile "loop.bat"
-          
-          # Python paketlerini kur
-          python.exe -m pip install requests pyautogui telegraph --quiet
-          
-          # RDP'yi etkinleştir
+          Write-Host "✅ Tüm dosyalar başarıyla indirildi" -ForegroundColor Green
+
+      - name: 🐍 Python Paketlerini Kur
+        run: |
+          Write-Host "Python paketleri yükleniyor..." -ForegroundColor Yellow
+          python.exe -m pip install requests pyautogui telegraph --quiet --no-warn
+          Write-Host "✅ Python paketleri kuruldu" -ForegroundColor Green
+
+      - name: 🔓 RDP'yi Etkinleştir
+        run: |
+          Write-Host "RDP etkinleştiriliyor..." -ForegroundColor Magenta
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -value 0
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-          
-          # Kullanıcı adı ve şifreyi ayarla
-          net user poutyuf "!poutyuf!" /add
+          netsh advfirewall firewall add rule name="Open RDP Port" dir=in action=allow protocol=TCP localport=3389
+          Write-Host "✅ RDP başarıyla etkinleştirildi" -ForegroundColor Green
+
+      - name: 👤 Kullanıcı Hesabı Oluştur
+        run: |
+          Write-Host "Kullanıcı hesabı oluşturuluyor..." -ForegroundColor Cyan
+          net user poutyuf "P@ssw0rd!2024" /add /Y
           net localgroup administrators poutyuf /add
-          
-          # Avica'yı başlat
-          Write-Host "⚡ Avica başlatılıyor..." -ForegroundColor Yellow
+          wmic UserAccount where Name='poutyuf' set PasswordExpires=False
+          Write-Host "✅ Kullanıcı hesabı oluşturuldu: poutyuf" -ForegroundColor Green
+
+      - name: 📦 Avica Kurulumu
+        run: |
+          Write-Host "Avica kurulumu başlatılıyor..." -ForegroundColor Yellow
           Start-Process "Avica_setup.exe" -Wait
-          
-          # Kurulum scriptini çalıştır
+          Write-Host "✅ Avica kurulumu tamamlandı" -ForegroundColor Green
+
+      - name: ⚙️ Kurulum Scriptini Çalıştır
+        run: |
+          Write-Host "Kurulum scripti çalıştırılıyor..." -ForegroundColor Magenta
           python setup.py
-          
-          Write-Host "✅ Kurulum tamamlandı!" -ForegroundColor Green
-          
-      - name: Bağlantıyı Başlat
+          Write-Host "✅ Kurulum scripti tamamlandı" -ForegroundColor Green
+
+      - name: 🌐 Bağlantı Bilgilerini Hazırla
         run: |
-          Write-Host "🔄 Bağlantı bilgileri hazırlanıyor..." -ForegroundColor Cyan
+          Write-Host "Bağlantı bilgileri hazırlanıyor..." -ForegroundColor Cyan
+          Write-Host "⏳ GoFile linki oluşturuluyor, lütfen bekleyin..." -ForegroundColor Yellow
+          timeout /t 15 /nobreak
           cmd /c show.bat
-        
-      - name: Oturumu Aktif Tut
+
+      - name: 🔄 Oturumu Sürekli Aktif Tut
         run: |
-          Write-Host "🌐 RDP oturumu aktif, bağlantı bekleniyor..." -ForegroundColor Yellow
+          Write-Host "RDP oturumu başlatılıyor..." -ForegroundColor Green
+          Write-Host "📡 Bağlantı bilgileri yukarıda gözükecektir" -ForegroundColor Cyan
+          Write-Host "🔄 Oturum sürekli aktif tutuluyor..." -ForegroundColor Magenta
           cmd /c loop.bat
