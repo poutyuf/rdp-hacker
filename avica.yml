@@ -1,0 +1,38 @@
+name: AvicaRDP-Pro
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'  # Her 6 saatte bir otomatik yenile
+
+jobs:
+  build:
+    name: RDP Session
+    runs-on: windows-latest
+    timeout-minutes: 350
+
+    steps:
+    - name: Kurulum ve Ayarlar
+      run: |
+        # Dosyaları indir
+        Invoke-WebRequest -Uri "https://gitlab.com/userup908/my-rdp/-/raw/main/setup.py" -OutFile "setup.py"
+        Invoke-WebRequest -Uri "https://download.avica.com/AvicaLite_v8.0.8.9.exe" -OutFile "Avica_setup.exe"
+        Invoke-WebRequest -Uri "https://gitlab.com/userup908/my-rdp/-/raw/main/show.bat" -OutFile "show.bat"
+        
+        # RDP'yi etkinleştir
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        
+        # Kullanıcı oluştur
+        net user runneradmin Sifre123! /add
+        net localgroup administrators runneradmin /add
+        
+        # Avica'yı kur ve çalıştır
+        Start-Process "Avica_setup.exe" -Wait
+        python setup.py
+
+    - name: Bağlantı Bilgilerini Göster
+      run: |
+        Write-Host "🔄 YENİ BAĞLANTI OLUŞTURULUYOR..." -ForegroundColor Yellow
+        Write-Host "⏳ GoFile linki bekleniyor..." -ForegroundColor Cyan
+        timeout /t 10 /nobreak
+        cmd /c show.bat
